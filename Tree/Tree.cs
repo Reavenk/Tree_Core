@@ -256,18 +256,21 @@ namespace PxPre
 
                 if(node.HasChildren() == true)
                 { 
-                    GameObject goExpand = new GameObject("Expand");
-                    goExpand.transform.SetParent(this.transform, false);
+                    if(tna.expandPlate == null)
+                    {
+                        GameObject goExpand = new GameObject("Expand");
+                        goExpand.transform.SetParent(this.transform, false);
 
-                    tna.expandPlate = goExpand.AddComponent<UnityEngine.UI.Image>();
-                    tna.expandButton = goExpand.AddComponent<UnityEngine.UI.Button>();
-                    tna.expandButton.targetGraphic = tna.expandPlate;
-                    tna.expandButton.onClick.AddListener(()=>{ node.Expanded = !node.Expanded; });
-                    tna.expandPlate.sprite = node.Expanded ? this.props.expandSprite : this.props.compressSprite;
+                        tna.expandPlate = goExpand.AddComponent<UnityEngine.UI.Image>();
+                        tna.expandButton = goExpand.AddComponent<UnityEngine.UI.Button>();
+                        tna.expandButton.targetGraphic = tna.expandPlate;
+                        tna.expandButton.onClick.AddListener(()=>{ node.Expanded = !node.Expanded; });
+                        tna.expandPlate.sprite = node.Expanded ? this.props.expandSprite : this.props.compressSprite;
 
-                    RectTransform rtExp = tna.expandPlate.rectTransform;
-                    PrepareChild(rtExp);
-                    rtExp.sizeDelta = tna.expandPlate.sprite.rect.size;
+                        RectTransform rtExp = tna.expandPlate.rectTransform;
+                        PrepareChild(rtExp);
+                        rtExp.sizeDelta = tna.expandPlate.sprite.rect.size;
+                    }
 
                 }
                 else
@@ -323,6 +326,8 @@ namespace PxPre
                     new Vector2(
                         tg.GetPreferredWidth(node.Label, tgs),
                         tg.GetPreferredHeight(node.Label, tgs));
+
+                tna.label.rectTransform.sizeDelta = labelDim;
 
                 float textPosX = this.props.horizPlateMargin + leftIconWid;
                 float plateWidth = textPosX + labelDim.x + this.props.vertPlateMargin + rightIconWid;
@@ -454,6 +459,19 @@ namespace PxPre
                 bool ctrlDown = Input.GetKeyDown( KeyCode.LeftControl) || Input.GetKeyDown(KeyCode.RightControl);
 
                 this.SelectNode(n, ctrlDown == false);
+            }
+
+            public void Clear()
+            { 
+                this.root = null;
+
+                foreach(TreeNodeAsset tna in this.nodeAssets.Values)
+                    tna.Destroy();
+
+                this.nodeAssets.Clear();
+
+                this.dirtyItems.Clear();
+                this.FlagDirty();
             }
         }
     }
