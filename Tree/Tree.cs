@@ -54,6 +54,21 @@ namespace PxPre
 
             public HashSet<Node> selected = new HashSet<Node>();
 
+            public bool imageFill = true;
+
+            public bool allowMultiSel = true;
+
+            protected override void OnPopulateMesh(UnityEngine.UI.VertexHelper toFill)
+            { 
+                if(this.imageFill == false)
+                {
+                    toFill.Clear();
+                    return;
+                }
+
+                base.OnPopulateMesh(toFill);
+            }
+
             public Node GetRoot()
             { 
                 if(this.root == null)
@@ -112,40 +127,75 @@ namespace PxPre
                     Node.DirtyItems dflag = n.DirtyFlags;
                     n.ClearDirty();
 
+                    if((dflag & Node.DirtyItems.RemoveTree) != 0)
+                    { 
+                        // If we're deleting, we're also going to handle the
+                        // assets for the rest of the hierarchy too, which 
+                        // means we'll need to traverse it.
+                        doLayout = true;
+                        Queue<Node> toDel = new Queue<Node>();
+                        toDel.Enqueue(n);
+                        // Delete assets for it and its children - and then we're done
+                        // processing this node.
+
+                        while(toDel.Count > 0)
+                        {
+                            Node nDeling = toDel.Dequeue();
+                            foreach(Node cn in nDeling.GetChildren())
+                                toDel.Enqueue(cn);
+
+                            TreeNodeAsset tnaDel;
+                            if(this.nodeAssets.TryGetValue(nDeling, out tnaDel) == true)
+                            {
+                                this.nodeAssets.Remove(nDeling);
+                                if(tnaDel.plate != null)
+                                    tnaDel.Destroy();
+                            }
+                        }
+                    }
+
                     TreeNodeAsset tna;
                     this.nodeAssets.TryGetValue(n, out tna);
 
-                    if((dflag & Node.DirtyItems.Selection) != 0)
-                    { 
-                        if(tna != null)
+                    if(tna != null && tna.plate != null)
+                    {
+                        if ((dflag & Node.DirtyItems.Selection) != 0)
                         { 
-                            if(n.Selected == true)
-                                tna.plate.color = this.props.selected;
-                            else
-                                tna.plate.color = this.props.unselected;
+                            if(tna != null)
+                            { 
+                                if(n.Selected == true)
+                                    tna.plate.color = this.props.selected;
+                                else
+                                    tna.plate.color = this.props.unselected;
+                            }
                         }
-                    }
 
-                    if((dflag & Node.DirtyItems.Name) != 0)
-                    { 
-                        if(tna != null)
+                        if((dflag & Node.DirtyItems.Name) != 0)
+                        { 
+                            if(tna != null)
+                            {
+                                tna.label.text = n.Label;
+
+                                // TODO: We might actually be able to avoid doing 
+                                // a full rebuild and just redoing only our width if
+                                // we know we're the only thing being renamed.
+                                doLayout = true;
+                            }
+                        }
+
+                        if((dflag & Node.DirtyItems.Expand) != 0)
                         {
-                            tna.label.text = n.Label;
-
-                            // TODO: We might actually be able to avoid doing 
-                            // a full rebuild and just redoing only our width if
-                            // we know we're the only thing being renamed.
                             doLayout = true;
                         }
-                    }
 
-                    if((dflag & Node.DirtyItems.Expand) != 0)
+                        if((dflag & (Node.DirtyItems.Reparent|Node.DirtyItems.RemoveTree|Node.DirtyItems.ChildChange|Node.DirtyItems.ChangedIcons)) != 0)
+                            doLayout = true;
+                    }
+                    else
                     {
+                        // If it's empty, we need to do a full process of the tree to recreate it.
                         doLayout = true;
                     }
-
-                    if((dflag & (Node.DirtyItems.Reparent|Node.DirtyItems.RemoveTree|Node.DirtyItems.ChildChange|Node.DirtyItems.ChangedIcons)) != 0)
-                        doLayout = true;
                 }
 
                 if(doLayout == true)
@@ -472,6 +522,15 @@ namespace PxPre
 
                 this.dirtyItems.Clear();
                 this.FlagDirty();
+            }
+
+            public void DeselectAll()
+            { 
+                List<Node> lst = new List<Node>(this.selected);
+                this.selected.Clear();
+
+                foreach(Node n in lst)
+                    n.Selected = false;
             }
         }
     }

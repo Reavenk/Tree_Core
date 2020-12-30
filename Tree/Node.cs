@@ -89,6 +89,7 @@ namespace PxPre
                     if(this.ownerTree != null && nullIsRoot == true)
                         this._SetParent(this.ownerTree.GetRoot());
 
+                    this.parent = null;
                     return true;
                 }
                 else
@@ -111,6 +112,7 @@ namespace PxPre
 
                     node.children.Add(this);
 
+                    this.parent = node;
                     node.FlagDirty(DirtyItems.ChildChange);
                     this.FlagDirty(DirtyItems.Reparent);
 
@@ -131,6 +133,7 @@ namespace PxPre
 
                 this.FlagDirty(DirtyItems.ChildChange);
                 node.FlagDirty(DirtyItems.Reparent);
+                node.FlagDirty(DirtyItems.RemoveTree);
 
                 node.parent = null;
 
@@ -278,6 +281,23 @@ namespace PxPre
                 Tree oldOwner = this.ownerTree;
                 this.ownerTree = null;
                 oldOwner.NotifyRemoval(this);
+
+                DestroyChildren();
+                return true;
+            }
+
+            public bool DestroyChildren()
+            {
+                if (this.ownerTree == null || this.parent == null)
+                    return false;
+
+                if(this.HasChildren() == true)
+                { 
+                    List<Node> childrenCpy = new List<Node>(this.children);
+                    foreach(Node n in childrenCpy)
+                        n.Destroy();
+                }
+
                 return true;
             }
         }
