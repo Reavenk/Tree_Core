@@ -31,6 +31,28 @@ namespace PxPre
         [CreateAssetMenu(menuName = "PxPre/TreeProps")]
         public class TreeProps : ScriptableObject
         {
+            public enum MaxXMode
+            { 
+                Width,
+                TouchEdge
+            }
+
+            
+            public enum WidthMode
+            { 
+                // Smilar to MaxXMode, but slightly out of coincidence since they're
+                // specifything different things, so we'll keep the enums different.
+                Width,
+                Leave,
+                TouchEdge
+            }
+
+            public enum BackgroundFill
+            { 
+                Empty,
+                Filled
+            }
+
             /// <summary>
             /// The plate for a node.
             /// </summary>
@@ -126,6 +148,12 @@ namespace PxPre
             /// The font size of a tree node label.
             /// </summary>
             public int labelFontSize;
+
+            public MaxXMode maxMode = MaxXMode.Width;
+
+            public WidthMode widthMode = WidthMode.Width;
+
+            public BackgroundFill backgroundFill = BackgroundFill.Filled;
         }
     }
 }

@@ -235,7 +235,40 @@ namespace PxPre
                 maxX += this.props.endOffset.x;
                 y -= this.props.endOffset.y;
 
-                this.rectTransform.sizeDelta = new Vector2(maxX, -y);
+                RectTransform thisRT = this.rectTransform;
+                if (this.props.widthMode == TreeProps.WidthMode.TouchEdge)
+                {
+                    thisRT.offsetMin = Vector2.zero;
+                    thisRT.offsetMax = Vector2.zero;
+                    //
+                    thisRT.sizeDelta = new Vector2(0.0f, -y);
+                    thisRT.anchorMin = new Vector2(0.0f, 1.0f);
+                    thisRT.anchorMax = new Vector2(1.0f, 1.0f);
+                }
+                else if(this.props.widthMode == TreeProps.WidthMode.Leave)
+                {
+                    // don't mess with anything except our height
+                    thisRT.sizeDelta = new Vector2(thisRT.sizeDelta.x, -y);
+                }
+                else
+                {
+                    thisRT.offsetMin = Vector2.zero;
+                    thisRT.offsetMax = Vector2.zero;
+                    //
+                    thisRT.sizeDelta = new Vector2(maxX, -y);
+                    thisRT.anchorMin = new Vector2(0.0f, 1.0f);
+                    thisRT.anchorMax = new Vector2(0.0f, 1.0f);
+                }
+
+                bool fill = true;
+                if(this.props.backgroundFill == TreeProps.BackgroundFill.Empty)
+                    fill = false;
+
+                if(this.imageFill != fill)
+                { 
+                    this.imageFill = fill;
+                    this.SetVerticesDirty();
+                }
 
                 return new Vector2(maxX, y);
             }
@@ -351,6 +384,7 @@ namespace PxPre
                 if(leftIconWid > 0.0f)
                     leftIconWid += this.props.iconNameSpacing;
 
+                // We calculate the right icons as 
                 foreach(Node.Icon ico in node.RightIcons())
                 { 
                     Vector2 dim = ico.sprite.rect.size;
@@ -380,15 +414,30 @@ namespace PxPre
                 tna.label.rectTransform.sizeDelta = labelDim;
 
                 float textPosX = this.props.horizPlateMargin + leftIconWid;
-                float plateWidth = textPosX + labelDim.x + this.props.vertPlateMargin + rightIconWid;
+                float plateWidth = textPosX + labelDim.x + this.props.vertPlateMargin + rightIconWid + this.props.horizPlateMargin;
                 plateWidth = Mathf.Max(plateWidth, this.props.minSize.x);
 
                 float plateHeight = this.props.vertPlateMargin + Mathf.Max(labelDim.y, maxIconY) + this.props.vertPlateMargin;
                 plateHeight = Mathf.Max(plateHeight, this.props.minSize.y, expcmpMax.y);
 
                 float fx = indent + expcmpMax.x + this.props.parentPlateSpacer;
-                tna.plate.rectTransform.anchoredPosition = new Vector2(fx, y);
-                tna.plate.rectTransform.sizeDelta = new Vector2(plateWidth, plateHeight);
+
+                RectTransform rtPlate = tna.plate.rectTransform;
+                rtPlate.anchoredPosition = new Vector2(fx, y);
+
+                if (this.props.maxMode == TreeProps.MaxXMode.TouchEdge)
+                {
+                    rtPlate.sizeDelta = new Vector2(0.0f, plateHeight);
+                    rtPlate.offsetMax = new Vector2(0.0f, rtPlate.offsetMax.y);
+                    rtPlate.anchorMin = new Vector2(0.0f, 1.0f);
+                    rtPlate.anchorMax = new Vector2(1.0f, 1.0f);
+                }
+                else
+                {
+                    rtPlate.sizeDelta = new Vector2(plateWidth, plateHeight);
+                    rtPlate.anchorMin = new Vector2(0.0f, 1.0f);
+                    rtPlate.anchorMax = new Vector2(0.0f, 1.0f);
+                }
 
                 tna.label.rectTransform.anchoredPosition = new Vector2(textPosX, -(plateHeight - labelDim.y) * 0.5f);
 
@@ -421,18 +470,32 @@ namespace PxPre
                 else
                     tna.ClearLeftIcons();
 
-                if(node.HasRightIcons() == true)
+                // Because the props.maxMode can be TreeProps.MaxXMode.TouchEdge (docks with the right edge) - 
+                // we don't want to branch so we write these layouts to be relative to the right size.
+                if (node.HasRightIcons() == true)
                 { 
-                    float xplace = plateWidth;
+                    float xplace = -this.props.horizPlateMargin;
                     HashSet<int> rightIDs = tna.GetRightIconIDs();
-                    foreach(Node.Icon ni in node.RightIcons())
-                    { 
+
+                    // Because we're right aligned, that means we need to figure out the alignment
+                    // from the right to left.
+                    List<Node.Icon> rightIcos = new List<Node.Icon>(node.RightIcons());
+                    for(int i = rightIcos.Count - 1; i >= 0; --i)
+                    {
+                        Node.Icon ni = rightIcos[i];
                         rightIDs.Remove(ni.id);
+
                         UnityEngine.UI.Image imgIco = tna.GetIconImage(ni.id, true);
                         Vector2 sz = imgIco.sprite.rect.size;
                         xplace -= sz.x;
-                        imgIco.rectTransform.anchoredPosition = new Vector2(xplace, -(plateHeight - sz.y) * 0.5f);
-                        xplace -= this.props.iconNameSpacing;
+
+                        RectTransform rtIco = imgIco.rectTransform;
+                        rtIco.anchorMin = new Vector2(1.0f, 1.0f);
+                        rtIco.anchorMax = new Vector2(1.0f, 1.0f);
+                        rtIco.pivot = new Vector2(1.0f, 1.0f);
+
+                        rtIco.anchoredPosition = new Vector2(-xplace - sz.x, -(plateHeight - sz.y) * 0.5f);
+                        xplace -= this.props.iconNameSpacing + sz.x;
                     }
                     foreach(int i in rightIDs)
                         tna.DestroyIconAssets(i);
