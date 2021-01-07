@@ -28,29 +28,74 @@ namespace PxPre
 {
     namespace Tree
     {
+        /// <summary>
+        /// The behavioural and visual properties of a tree.
+        /// </summary>
         [CreateAssetMenu(menuName = "PxPre/TreeProps")]
         public class TreeProps : ScriptableObject
         {
+            /// <summary>
+            /// Specifies how tree nodes should use their widths when sized.
+            /// </summary>
             public enum MaxXMode
             { 
+                /// <summary>
+                /// The nodes should use their calculated widths.
+                /// </summary>
                 Width,
+
+                /// <summary>
+                /// The nodes should expands all the way to the end and touch
+                /// the right edge.
+                /// </summary>
                 TouchEdge
             }
 
-            
+            /// <summary>
+            /// Specifies how the tree should distribute its width.
+            /// </summary>
+            /// <remarks>
+            /// Smilar to MaxXMode, but slightly out of coincidence since they're
+            /// specifything different things, so we'll keep the enums different.
+            /// </remarks>
             public enum WidthMode
             { 
-                // Smilar to MaxXMode, but slightly out of coincidence since they're
-                // specifything different things, so we'll keep the enums different.
+                /// <summary>
+                /// The width should be the rightmost position if 
+                /// </summary>
                 Width,
+
+                /// <summary>
+                /// Leave the width alone. Only the height will be modified.
+                /// </summary>
                 Leave,
+
+                /// <summary>
+                /// Auto-align the right side to touch the right side of Tree's 
+                /// RectTransform parent.
+                /// </summary>
                 TouchEdge
             }
 
+            /// <summary>
+            /// Specifies if the tree should show its background or not.
+            /// </summary>
             public enum BackgroundFill
             { 
+                /// <summary>
+                /// No background.
+                /// </summary>
                 Empty,
-                Filled
+
+                /// <summary>
+                /// Filled in background.
+                /// </summary>
+                Filled, 
+
+                /// <summary>
+                /// Don't override the Tree's fill property.
+                /// </summary>
+                Leave
             }
 
             /// <summary>
@@ -149,10 +194,19 @@ namespace PxPre
             /// </summary>
             public int labelFontSize;
 
+            /// <summary>
+            /// The right-alignment behaviour of nodes.
+            /// </summary>
             public MaxXMode maxMode = MaxXMode.Width;
 
+            /// <summary>
+            /// The right-alignment behaviour of the tree.
+            /// </summary>
             public WidthMode widthMode = WidthMode.Width;
 
+            /// <summary>
+            /// The background fill behaviour.
+            /// </summary>
             public BackgroundFill backgroundFill = BackgroundFill.Filled;
         }
     }

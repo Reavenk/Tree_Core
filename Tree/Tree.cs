@@ -30,32 +30,81 @@ namespace PxPre
     {
         public class Tree : UnityEngine.UI.Image
         {
+            /// <summary>
+            /// A counter to generate unique IDs for tree nodes. These IDs are explicitly 
+            /// functional, but can be used as a convenience feature or for tracking nodes
+            /// during debugging.
+            /// </summary>
             static int idCounter = 0;
+
+            /// <summary>
+            /// Allocate a new id.
+            /// </summary>
+            /// <returns>The new ID.</returns>
             public static int GetNewID()
             { 
                 return ++idCounter;
             }
 
+            /// <summary>
+            /// The Unity UI assets for the nodes.
+            /// </summary>
             Dictionary<Node, TreeNodeAsset> nodeAssets = 
                 new Dictionary<Node, TreeNodeAsset>();
 
+            /// <summary>
+            /// Nodes that are dirty. We may be able to cull operations when cleaning
+            /// the tree if we're able to analyze what's dirty.
+            /// </summary>
             HashSet<Node> dirtyItems = new HashSet<Node>();
 
+            /// <summary>
+            /// The root node. It should be accessed with GetRoot(). If the root is 
+            /// null when GetRoot() is called, a default root will be created.
+            /// </summary>
             Node root = null;
 
+            /// <summary>
+            /// The tree properties that specify various assets and behaviours.
+            /// </summary>
             public TreeProps props;
 
+            /// <summary>
+            /// An object with StartCoroutine() implemented that can  run the dirty flag handling
+            /// coroutine. If null, the Tree object itself is default.
+            /// </summary>
+            /// <remarks>Usually this will be null, but may be useful if the Tree can turn off but
+            /// having the dirty coroutine is still desired. In this case, a managing GameObject that
+            /// is known to always be active and enabled can be specified.</remarks>
             public MonoBehaviour coroutineHost;
+
+            /// <summary>
+            /// The coroutine for handling the dirty flag. If the coroutine is null, the Tree is not dirty.
+            /// The coroutine will be running in coroutineHost, or this is coroutineHost is null.
+            /// </summary>
             private Coroutine dirtyUpdate = null;
 
+            /// <summary>
+            /// Subscribers to receive messages when the tree and its nodes are modified, or if 
+            /// selection or compression states change.
+            /// </summary>
             public HashSet<ITreeHandler> subscribers = new HashSet<ITreeHandler>();
 
             public MonoBehaviour GetCoroutineHost() => this.coroutineHost ?? this;
 
             public HashSet<Node> selected = new HashSet<Node>();
 
+            /// <summary>
+            /// If true, a quad is drawn for the background of the tree. If false, no background.
+            /// Since the Tree derives off a Unity image, all this does is decide whether to allow
+            /// the base Image behaviour or bypass it.
+            /// </summary>
             public bool imageFill = true;
 
+            /// <summary>
+            /// If true, multiple nodes can be simultaneously selected. If false, only 1 node (at most)
+            /// is allowed to be selected at any given time.
+            /// </summary>
             public bool allowMultiSel = true;
 
             protected override void OnPopulateMesh(UnityEngine.UI.VertexHelper toFill)
@@ -69,6 +118,13 @@ namespace PxPre
                 base.OnPopulateMesh(toFill);
             }
 
+            /// <summary>
+            /// Get the root node.
+            /// </summary>
+            /// <returns>The root node.</returns>
+            /// <remarks>The root node is not directly visible in tree. Its children will be the
+            /// first depth rendered.</remarks>
+            /// <remarks>If the tree does not have a root, one is automatically created for the tree.</remarks>
             public Node GetRoot()
             { 
                 if(this.root == null)
@@ -77,6 +133,12 @@ namespace PxPre
                 return this.root;
             }
 
+            /// <summary>
+            /// Add a node to the tree.
+            /// </summary>
+            /// <param name="label">The text display of the node.</param>
+            /// <param name="parent">The parent node, or null for the root node.</param>
+            /// <returns>True if the node was successfully added. Else, false.</returns>
             public Node AddNode(string label, Node parent)
             {
                 if (parent == null)
@@ -94,17 +156,31 @@ namespace PxPre
                 return node;
             }
 
+            /// <summary>
+            /// Check if a node is managed by the tree.
+            /// </summary>
+            /// <param name="node">The node to query.</param>
+            /// <returns>True if the node is in the hierarchy. Else, false.</returns>
             public bool HasNode(Node node)
             { 
                 return this.nodeAssets.ContainsKey(node);
             }
 
+            /// <summary>
+            /// Logs a node as dirty and flags the tree as dirty.
+            /// </summary>
+            /// <param name="node">The node to log.</param>
             public void FlagDirty(Node node)
             {
                 this.dirtyItems.Add(node);
                 this.FlagDirty();
             }
 
+            /// <summary>
+            /// Flags the tree as dirty and auto-queues the process for
+            /// cleaning the tree if not already queued.
+            /// </summary>
+            /// <returns></returns>
             public bool FlagDirty()
             { 
                 if(this.dirtyUpdate != null)
@@ -116,6 +192,12 @@ namespace PxPre
                 return true;
             }
 
+            /// <summary>
+            /// Coroutine to automatically handle processing the dirty flag.
+            /// 
+            /// Should only be called by FlagDirty.
+            /// </summary>
+            /// <returns>The IEnumerator for Unity management.</returns>
             public IEnumerator DirtyCoroutine()
             { 
                 yield return new WaitForEndOfFrame();
@@ -204,6 +286,10 @@ namespace PxPre
                 this.dirtyUpdate = null;
             }
 
+            /// <summary>
+            /// Layout the entire tree. This includes both the nodes and the tree plate.
+            /// </summary>
+            /// <returns></returns>
             public Vector2 LayoutTree()
             { 
                 float indent = this.props.startOffset.x;
@@ -260,19 +346,26 @@ namespace PxPre
                     thisRT.anchorMax = new Vector2(0.0f, 1.0f);
                 }
 
-                bool fill = true;
-                if(this.props.backgroundFill == TreeProps.BackgroundFill.Empty)
-                    fill = false;
+                if(this.props.backgroundFill != TreeProps.BackgroundFill.Leave)
+                {
+                    bool fill = true;
+                    if(this.props.backgroundFill == TreeProps.BackgroundFill.Empty)
+                        fill = false;
 
-                if(this.imageFill != fill)
-                { 
-                    this.imageFill = fill;
-                    this.SetVerticesDirty();
+                    if(this.imageFill != fill)
+                    { 
+                        this.imageFill = fill;
+                        this.SetVerticesDirty();
+                    }
                 }
 
                 return new Vector2(maxX, y);
             }
 
+            /// <summary>
+            /// Set standard RectTransform values to a specified RectTransform.
+            /// </summary>
+            /// <param name="rt">The RectTransform to modify.</param>
             public static void PrepareChild(RectTransform rt)
             { 
                 rt.localScale       = Vector2.one;
@@ -283,6 +376,10 @@ namespace PxPre
                 rt.pivot            = new Vector2(0.0f, 1.0f);
             }
 
+            /// <summary>
+            /// Hides the assets for a node hierarchy.
+            /// </summary>
+            /// <param name="node">The node to hide the assets of its hierarchy for.</param>
             public void DisableHierarchy(Node node)
             {
                 TreeNodeAsset tna;
@@ -293,6 +390,15 @@ namespace PxPre
                     this.DisableHierarchy(n);
             }
 
+            /// <summary>
+            /// Recursive call to handle the assets of a node hierarchy.
+            /// </summary>
+            /// <param name="node">The node to manage assets for.</param>
+            /// <param name="indent">The amount to indent for every hierarchy depth.</param>
+            /// <param name="y">The current vertical placement cursor.</param>
+            /// <param name="maxX">The output variable to track the rightmost node.</param>
+            /// <param name="expcmpMax">The precalculated max size between the compress and expand sprites.</param>
+            /// <param name="used">A collection tracking variables that were managed.</param>
             private void LayoutNode(Node node, float indent, ref float y, ref float maxX, Vector2 expcmpMax, HashSet<TreeNodeAsset> used)
             { 
 
@@ -567,6 +673,11 @@ namespace PxPre
                 this.selected.Remove(node);
             }
 
+            /// <summary>
+            /// Called when a node is clicked.
+            /// </summary>
+            /// <param name="n">The node that was clicked.</param>
+            /// <remarks>Might not be fully implemented yet.</remarks>
             private void NodeClickHandler(Node n)
             { 
                 bool ctrlDown = Input.GetKeyDown( KeyCode.LeftControl) || Input.GetKeyDown(KeyCode.RightControl);
@@ -574,6 +685,10 @@ namespace PxPre
                 this.SelectNode(n, ctrlDown == false);
             }
 
+            /// <summary>
+            /// Clear all nodes in the tree.
+            /// </summary>
+            /// <remarks>Includes the root.</remarks>
             public void Clear()
             { 
                 this.root = null;
@@ -587,6 +702,9 @@ namespace PxPre
                 this.FlagDirty();
             }
 
+            /// <summary>
+            /// Deselect all nodes.
+            /// </summary>
             public void DeselectAll()
             { 
                 List<Node> lst = new List<Node>(this.selected);
