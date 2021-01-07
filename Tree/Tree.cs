@@ -632,18 +632,10 @@ namespace PxPre
                 }
             }
 
-            public void ClearAllSelections()
-            { 
-                // Copy because we can't modify the container we're iterating
-                List<Node> seled = new List<Node>(this.selected);
-                foreach(Node n in seled)
-                    n.Selected = false;
-            }
-
             public void SelectNode(Node node, bool clearPrevSelection)
             { 
                 if(clearPrevSelection == true)
-                    this.ClearAllSelections();
+                    this.DeselectAll();
 
                 node.Selected = true;
             }
@@ -652,7 +644,7 @@ namespace PxPre
             { 
                 bool oldSel = node.Selected;
                 if(clearPrevSelection == true)
-                    this.ClearAllSelections();
+                    this.DeselectAll();
 
                 node.Selected = !oldSel;
             }
