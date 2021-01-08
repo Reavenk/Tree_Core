@@ -208,6 +208,25 @@ namespace PxPre
             /// The background fill behaviour.
             /// </summary>
             public BackgroundFill backgroundFill = BackgroundFill.Filled;
+
+            public Vector2 CalculateExpandCompressMaxs()
+            {
+                Vector2 compSprDim = Vector2.zero;
+                Vector2 expaSprDim = Vector2.zero;
+
+                if(this.compressSprite != null)
+                    compSprDim = this.compressSprite.rect.size;
+
+                if(this.expandSprite != null)
+                    expaSprDim = this.expandSprite.rect.size;
+
+                Vector2 ret =
+                    new Vector2(
+                        Mathf.Max(compSprDim.x, expaSprDim.x),
+                        Mathf.Max(compSprDim.y, expaSprDim.y));
+
+                return ret;
+            }
         }
     }
 }

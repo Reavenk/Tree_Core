@@ -267,7 +267,12 @@ namespace PxPre
 
                         if((dflag & Node.DirtyItems.Expand) != 0)
                         {
-                            doLayout = true;
+                            if(tna.expandPlate == null)
+                                doLayout = true;
+                            else
+                            { 
+                                tna.UpdateExpandCompress(this.props, true);
+                            }
                         }
 
                         if((dflag & (Node.DirtyItems.Reparent|Node.DirtyItems.RemoveTree|Node.DirtyItems.ChildChange|Node.DirtyItems.ChangedIcons)) != 0)
@@ -297,13 +302,7 @@ namespace PxPre
                 float maxX = indent;
 
                 HashSet<TreeNodeAsset> used = new HashSet<TreeNodeAsset>(this.nodeAssets.Values);
-
-                Vector2 compSprDim = this.props.compressSprite.rect.size;
-                Vector2 expaSprDim = this.props.expandSprite.rect.size;
-                Vector2 ceDim = 
-                    new Vector2(
-                        Mathf.Max(compSprDim.x, expaSprDim.x),
-                        Mathf.Max(compSprDim.y, expaSprDim.y));
+                Vector2 ceDim = this.props.CalculateExpandCompressMaxs();
 
                 bool atleastone = false;
                 if(this.root != null && this.root.HasChildren() == true)
@@ -447,20 +446,9 @@ namespace PxPre
                 { 
                     if(tna.expandPlate == null)
                     {
-                        GameObject goExpand = new GameObject("Expand");
-                        goExpand.transform.SetParent(this.transform, false);
-
-                        tna.expandPlate = goExpand.AddComponent<UnityEngine.UI.Image>();
-                        tna.expandButton = goExpand.AddComponent<UnityEngine.UI.Button>();
-                        tna.expandButton.targetGraphic = tna.expandPlate;
-                        tna.expandButton.onClick.AddListener(()=>{ node.Expanded = !node.Expanded; });
-                        tna.expandPlate.sprite = node.Expanded ? this.props.expandSprite : this.props.compressSprite;
-
-                        RectTransform rtExp = tna.expandPlate.rectTransform;
-                        PrepareChild(rtExp);
-                        rtExp.sizeDelta = tna.expandPlate.sprite.rect.size;
+                        tna.CreateExpandCompressAssets(this.rectTransform);
+                        tna.UpdateExpandCompress(this.props, false);
                     }
-
                 }
                 else
                 { 
@@ -526,7 +514,7 @@ namespace PxPre
                 float plateHeight = this.props.vertPlateMargin + Mathf.Max(labelDim.y, maxIconY) + this.props.vertPlateMargin;
                 plateHeight = Mathf.Max(plateHeight, this.props.minSize.y, expcmpMax.y);
 
-                float fx = indent + expcmpMax.x + this.props.parentPlateSpacer;
+                float fx = TreeNodeAsset.GetNodePlateX(indent, expcmpMax.x, this.props.parentPlateSpacer);
 
                 RectTransform rtPlate = tna.plate.rectTransform;
                 rtPlate.anchoredPosition = new Vector2(fx, y);
@@ -546,15 +534,6 @@ namespace PxPre
                 }
 
                 tna.label.rectTransform.anchoredPosition = new Vector2(textPosX, -(plateHeight - labelDim.y) * 0.5f);
-
-                // Aligning the expand/compress button
-                if(tna.expandPlate != null)
-                { 
-                    RectTransform rtExp = tna.expandPlate.rectTransform;
-                    Vector2 expSz = tna.expandPlate.sprite.rect.size;
-                    rtExp.sizeDelta = expSz;
-                    rtExp.anchoredPosition = new Vector2(indent + expcmpMax.x - expSz.x, y - (plateHeight - expSz.y) * 0.5f);
-                }
 
                 if(node.HasLeftIcons() == true)
                 { 
@@ -608,6 +587,17 @@ namespace PxPre
                 }
                 else
                     tna.ClearRightIcons();
+
+                // Aligning the expand/compress button. We do this at the end (before handling children) because
+                // we need the plate calculated in the right X position before calling the correct function.
+                if (tna.expandPlate != null)
+                {
+                    tna.RealignExpandCompress(indent, expcmpMax);
+                    // RectTransform rtExp = tna.expandPlate.rectTransform;
+                    // Vector2 expSz = tna.expandPlate.sprite.rect.size;
+                    // rtExp.sizeDelta = expSz;
+                    // rtExp.anchoredPosition = new Vector2(indent + expcmpMax.x - expSz.x, y - (plateHeight - expSz.y) * 0.5f);
+                }
 
                 maxX = Mathf.Max(maxX, fx + plateWidth);
                 y -= plateHeight;

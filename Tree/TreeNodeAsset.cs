@@ -155,6 +155,109 @@ namespace PxPre
                 if(this.expandPlate != null)
                     this.expandPlate.gameObject.SetActive(toggle);
             }
+
+            // Move the Expand/Compress button to the correct location, relative
+            // to an already placed node plate.
+            public bool RealignExpandCompress(TreeProps props)
+            {
+                if (this.plate == null || this.expandPlate == null)
+                    return false;
+
+                Vector2 icoMax = props.CalculateExpandCompressMaxs();
+                float indent = GetIndentOfNode(this.plate.rectTransform, icoMax.x, props.parentPlateSpacer);
+                return RealignExpandCompress(indent, icoMax);
+            }
+
+            public bool RealignExpandCompress(float indent, Vector2 expcompMaxDims)
+            {
+                if (this.plate == null || this.expandPlate == null)
+                    return false;
+
+                RectTransform rtPlate = this.plate.rectTransform;
+                float y = rtPlate.anchoredPosition.y;
+                float plateHeight = rtPlate.sizeDelta.y;
+
+                RectTransform rtExp = this.expandPlate.rectTransform;
+                Vector2 expSz = this.expandPlate.sprite.rect.size;
+                rtExp.sizeDelta = expSz;
+                rtExp.anchoredPosition = 
+                    new Vector2(
+                        indent + (expcompMaxDims.x - expSz.x) * 0.5f, 
+                        y - (plateHeight - expSz.y) * 0.5f);
+
+                return true;
+            }
+
+            public bool CreateExpandCompressAssets(RectTransform parent)
+            { 
+                if(this.expandPlate != null)
+                    return false;
+
+                GameObject goExpand = new GameObject("Expand");
+                goExpand.transform.SetParent(parent, false);
+
+                this.expandPlate    = goExpand.AddComponent<UnityEngine.UI.Image>();
+                this.expandButton   = goExpand.AddComponent<UnityEngine.UI.Button>();
+                this.expandButton.targetGraphic = this.expandPlate;
+                this.expandButton.onClick.AddListener(() => { node.Expanded = !node.Expanded; });
+
+                Tree.PrepareChild(this.expandPlate.rectTransform);
+
+                return true;
+            }
+
+            public void UpdateExpandCompress(TreeProps props, bool realign)
+            {
+                this.expandPlate.sprite =
+                    this.node.Expanded ?
+                        props.expandSprite :
+                        props.compressSprite;
+
+                if(realign == true)
+                    this.RealignExpandCompress(props);
+            }
+
+            ////////////////////////////////////////////////////////////////////////////////
+            //
+            //      ALIGNMENT CALCULATION UTILITIES
+            //
+            // These member(s) (functions) below  are for calculating various properties. While 
+            // they're not complex, the point is to have a single location for these things that 
+            // are next to each other in code so various things that need to calculate offsets and
+            // alignments can agree on value.
+            //
+            ////////////////////////////////////////////////////////////////////////////////
+
+            /// <summary>
+            /// Gets the very leftmost of the node system.
+            /// </summary>
+            /// <param name="props">
+            /// Given the RectTransform for a node's plate, calculate the 
+            /// very left of the node's UI system.</param>
+            /// <returns></returns>
+            /// <remarks>
+            /// This returns the VERY leftmost, where the left of the expand/compress
+            /// button would be (if it's there). Not to be confused with the left side of the node.
+            /// </remarks>
+            public static float GetIndentOfNode(RectTransform nodePlate, float icoMaxWidth, float spacer)
+            { 
+                return nodePlate.anchoredPosition.x - spacer - icoMaxWidth;
+            }
+
+            /// <summary>
+            /// Given a standard layout information of a node, calculate the starting x position of
+            /// a node plate.
+            /// </summary>
+            /// <param name="indent">The index. This will be a combination of the left margin for the
+            /// entire Tree system, the indent-per-hierarchy-depth, the actual hierarchy depth.</param>
+            /// <param name="icoMaxWidth">The maximum width between the expand and compress icons.</param>
+            /// <param name="spacer">The amount of space between the expand/compress button and the
+            /// the node plate.</param>
+            /// <returns></returns>
+            public static float GetNodePlateX(float indent, float icoMaxWidth, float spacer)
+            {
+                return indent + icoMaxWidth + spacer;
+            }
         }
     }
 }
