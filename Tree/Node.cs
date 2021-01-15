@@ -82,7 +82,10 @@ namespace PxPre
                 /// <summary>
                 /// The node's icon collection has changed.
                 /// </summary>
-                ChangedIcons    = 1 << 7
+                ChangedIcons    = 1 << 7,
+
+                // The minimum height has changed
+                MinHeight = 1 << 8
             }
 
             /// <summary>
@@ -173,6 +176,20 @@ namespace PxPre
             /// The icons displayed to the right of the label.
             /// </summary>
             List<Icon> rightIcons = null;
+
+            float minHeight = 0;
+            public float MinHeight 
+            {
+                get=>this.minHeight;
+                set
+                { 
+                    if(this.minHeight == value)
+                        return;
+
+                    this.minHeight = value;
+                    this.FlagDirty(DirtyItems.MinHeight);
+                }
+            }
 
             /// <summary>
             /// Constructor.

@@ -204,9 +204,12 @@ namespace PxPre
 
                 bool doLayout = false;
 
+                Node.DirtyItems accumulatedDirty = 0;
+
                 foreach (Node n in this.dirtyItems)
                 { 
                     Node.DirtyItems dflag = n.DirtyFlags;
+                    accumulatedDirty |= dflag;
                     n.ClearDirty();
 
                     if((dflag & Node.DirtyItems.RemoveTree) != 0)
@@ -663,6 +666,15 @@ namespace PxPre
             public void NotifyRemoval(Node node)
             { 
                 this.selected.Remove(node);
+            }
+
+            public RectTransform GetNodeRectTransform(Node n)
+            {
+                TreeNodeAsset tna;
+                if(this.nodeAssets.TryGetValue(n, out tna) == false)
+                    return null;
+
+                return tna.plate.rectTransform;
             }
 
             /// <summary>
