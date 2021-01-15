@@ -286,7 +286,7 @@ namespace PxPre
                 }
 
                 if(doLayout == true)
-                    this.LayoutTree();
+                    this.LayoutTree(accumulatedDirty);
 
                 this.dirtyUpdate = null;
             }
@@ -294,8 +294,10 @@ namespace PxPre
             /// <summary>
             /// Layout the entire tree. This includes both the nodes and the tree plate.
             /// </summary>
+            /// <remarks>The dirty flags that lead to tree layout. Only used for subscriber
+            /// events data.</remarks>
             /// <returns></returns>
-            public Vector2 LayoutTree()
+            public Vector2 LayoutTree(Node.DirtyItems dirtyItems = 0)
             { 
                 float indent = this.props.startOffset.x;
                 float y = -this.props.startOffset.y;
@@ -358,7 +360,15 @@ namespace PxPre
                     }
                 }
 
-                return new Vector2(maxX, y);
+                Vector2 finalSize = new Vector2(maxX, -y);
+
+                if (this.subscribers != null)
+                { 
+                    foreach(ITreeHandler ith in this.subscribers)
+                        ith.OnTreeLayout(this, dirtyItems, finalSize);
+                }
+
+                return finalSize;
             }
 
             /// <summary>
@@ -600,7 +610,7 @@ namespace PxPre
                 }
 
                 maxX = Mathf.Max(maxX, fx + plateWidth);
-                y -= plateHeight;
+                y -= Mathf.Max(plateHeight, node.MinHeight);
 
                 if (node.HasChildren() == true)
                 { 

@@ -35,6 +35,7 @@ namespace PxPre
             void OnNodeExpanded(Tree tree, Node node, bool expanded);
             void OnNodeSelected(Tree tree, Node node, bool selected);
             void OnNodeClicked(Tree tree, Node node);
+            void OnTreeLayout(Tree tree, Node.DirtyItems allIssues, Vector2 size);
 
         }
     }
