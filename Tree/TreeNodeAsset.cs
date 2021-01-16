@@ -37,8 +37,8 @@ namespace PxPre.Tree
         public UnityEngine.UI.Image expandPlate;
         public UnityEngine.UI.Button expandButton;
 
-        public Dictionary<int, UnityEngine.UI.Image> leftIcons;
-        public Dictionary<int, UnityEngine.UI.Image> rightIcons;
+        public Dictionary<string, UnityEngine.UI.Image> leftIcons;
+        public Dictionary<string, UnityEngine.UI.Image> rightIcons;
 
         public TreeNodeAsset(Node node)
         {
@@ -59,7 +59,7 @@ namespace PxPre.Tree
             if (this.leftIcons == null)
                 return;
 
-            foreach (KeyValuePair<int, UnityEngine.UI.Image> kvp in this.leftIcons)
+            foreach (KeyValuePair<string, UnityEngine.UI.Image> kvp in this.leftIcons)
                 GameObject.Destroy(kvp.Value.gameObject);
 
             this.leftIcons = null;
@@ -70,31 +70,37 @@ namespace PxPre.Tree
             if (this.rightIcons == null)
                 return;
 
-            foreach (KeyValuePair<int, UnityEngine.UI.Image> kvp in this.rightIcons)
+            foreach (KeyValuePair<string, UnityEngine.UI.Image> kvp in this.rightIcons)
                 GameObject.Destroy(kvp.Value.gameObject);
 
             this.rightIcons = null;
         }
 
-        public HashSet<int> GetLeftIconIDs()
+        public HashSet<string> GetLeftIconIDs()
         {
-            return new HashSet<int>(this.leftIcons.Keys);
+            if(this.leftIcons == null)
+                return new HashSet<string>();
+
+            return new HashSet<string>(this.leftIcons.Keys);
         }
 
-        public HashSet<int> GetRightIconIDs()
+        public HashSet<string> GetRightIconIDs()
         {
-            return new HashSet<int>(this.rightIcons.Keys);
+            if(this.rightIcons == null)
+                return new HashSet<string>();
+
+            return new HashSet<string>(this.rightIcons.Keys);
         }
 
-        public bool DestroyIconAssets(int idx)
+        public bool DestroyIconAssets(string id)
         {
             if (this.leftIcons != null)
             {
                 UnityEngine.UI.Image img;
-                if (this.leftIcons.TryGetValue(idx, out img) == true)
+                if (this.leftIcons.TryGetValue(id, out img) == true)
                 {
                     GameObject.Destroy(img.gameObject);
-                    this.leftIcons.Remove(idx);
+                    this.leftIcons.Remove(id);
                     return true;
                 }
             }
@@ -102,10 +108,10 @@ namespace PxPre.Tree
             if (this.rightIcons != null)
             {
                 UnityEngine.UI.Image img;
-                if (this.rightIcons.TryGetValue(idx, out img) == true)
+                if (this.rightIcons.TryGetValue(id, out img) == true)
                 {
                     GameObject.Destroy(img.gameObject);
-                    this.rightIcons.Remove(idx);
+                    this.rightIcons.Remove(id);
                     return true;
                 }
             }
@@ -113,29 +119,60 @@ namespace PxPre.Tree
             return false;
         }
 
-        public UnityEngine.UI.Image GetIconImage(int idx, bool left)
+        public UnityEngine.UI.Image GetIconImage(string id, bool left)
         {
             if (left == true)
-                return this.GetIconImage(idx, this.leftIcons);
+            {
+                if(this.leftIcons == null)
+                    this.leftIcons = new Dictionary<string, UnityEngine.UI.Image>();
 
-            return this.GetIconImage(idx, this.rightIcons);
+                return this.GetIconImage(id, this.leftIcons);
+            }
+
+            if(this.rightIcons == null)
+                this.rightIcons = new Dictionary<string, UnityEngine.UI.Image>();
+
+            return this.GetIconImage(id, this.rightIcons);
         }
 
-        private UnityEngine.UI.Image GetIconImage(int idx, Dictionary<int, UnityEngine.UI.Image> side)
+        private UnityEngine.UI.Image GetIconImage(string id, Dictionary<string, UnityEngine.UI.Image> side)
         {
+            if(side == null)
+                return null;
+
             UnityEngine.UI.Image img;
-            if (side.TryGetValue(idx, out img) == true)
+            if (side.TryGetValue(id, out img) == true)
                 return img;
 
             GameObject go = new GameObject("Icon");
             go.transform.SetParent(this.plate.transform, false);
 
             img = go.AddComponent<UnityEngine.UI.Image>();
-            img.sprite = node.GetIconSprite(idx);
+            img.sprite = node.GetIconSprite(id);
 
             RectTransform rtImg = img.rectTransform;
             rtImg.sizeDelta = img.sprite.rect.size;
             Tree.PrepareChild(rtImg);
+
+            side.Add(id, img);
+
+            // Create the button and disable it. If it's needed, it can be reenabled later. If not, it's
+            // accepted overhead to have a do-nothing button.
+            UnityEngine.UI.Button btn = go.AddComponent<UnityEngine.UI.Button>();
+            btn.onClick.AddListener(
+                ()=>
+                { 
+                    // Get icon from scratch, it might have changed since when the button 
+                    // and lambda were were instanciated.
+                    Node.Icon ? ico = this.node.GetIconInfo(id);
+                    if(ico.HasValue == false || ico.Value.onClick == null)
+                        return;
+
+                    ico.Value.onClick.Invoke(this.node.OwnerTree, this.node, img.rectTransform);
+                });
+
+            btn.interactable = false;
+            btn.enabled = false;
 
             return img;
         }

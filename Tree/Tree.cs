@@ -549,18 +549,26 @@ namespace PxPre.Tree
             if(node.HasLeftIcons() == true)
             { 
                 float xplace = this.props.horizPlateMargin;
-                HashSet<int> leftIDs = tna.GetLeftIconIDs();
+                HashSet<string> leftIDs = tna.GetLeftIconIDs();
                 foreach(Node.Icon ni in node.LeftIcons())
                 { 
                     leftIDs.Remove(ni.id);
                     UnityEngine.UI.Image imgIco = tna.GetIconImage(ni.id, true);
+                    imgIco.sprite = ni.sprite;
                     Vector2 sz = imgIco.sprite.rect.size;
                     imgIco.rectTransform.anchoredPosition = new Vector2(xplace, -(plateHeight - sz.y) * 0.5f);
                     xplace += sz.x;
                     xplace += this.props.iconSpacing;
 
+                    UnityEngine.UI.Button btn = imgIco.GetComponent<UnityEngine.UI.Button>();
+                    if(btn != null)
+                    {
+                        btn.enabled = (ni.onClick != null);
+                        btn.interactable = btn.enabled;
+                    }
+
                 }
-                foreach(int i in leftIDs)
+                foreach(string i in leftIDs)
                     tna.DestroyIconAssets(i);
             }
             else
@@ -571,7 +579,7 @@ namespace PxPre.Tree
             if (node.HasRightIcons() == true)
             { 
                 float xplace = -this.props.horizPlateMargin;
-                HashSet<int> rightIDs = tna.GetRightIconIDs();
+                HashSet<string> rightIDs = tna.GetRightIconIDs();
 
                 // Because we're right aligned, that means we need to figure out the alignment
                 // from the right to left.
@@ -593,7 +601,7 @@ namespace PxPre.Tree
                     rtIco.anchoredPosition = new Vector2(-xplace - sz.x, -(plateHeight - sz.y) * 0.5f);
                     xplace -= this.props.iconNameSpacing + sz.x;
                 }
-                foreach(int i in rightIDs)
+                foreach(string i in rightIDs)
                     tna.DestroyIconAssets(i);
             }
             else

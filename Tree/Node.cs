@@ -95,7 +95,7 @@ namespace PxPre.Tree
             /// The id, used to identify the icon when requesting
             /// a modification.
             /// </summary>
-            public int id;
+            public string id;
 
             /// <summary>
             /// The sprite;
@@ -111,7 +111,7 @@ namespace PxPre.Tree
             /// The action to perform is the icon is clicked. Set as null to disable
             /// interactivity.
             /// </summary>
-            public System.Action onClick; 
+            public System.Action<Tree, Node, RectTransform> onClick; 
         }
 
         /// <summary>
@@ -444,13 +444,13 @@ namespace PxPre.Tree
         /// <param name="idx">The ID of the icon.</param>
         /// <returns>The sprite of the specified icon, or null if the icon could
         /// not be found.</returns>
-        public Sprite GetIconSprite(int idx)
+        public Sprite GetIconSprite(string id)
         { 
             if(this.leftIcons != null)
             { 
                 foreach(Icon i in this.leftIcons)
                 { 
-                    if(i.id == idx)
+                    if(i.id == id)
                         return i.sprite;
                 }
             }
@@ -459,12 +459,143 @@ namespace PxPre.Tree
             { 
                 foreach(Icon i in this.rightIcons)
                 { 
-                    if(i.id == idx)
+                    if(i.id == id)
                         return i.sprite;
                 }
             }
 
             return null;
+        }
+
+        public Icon ? GetIconInfo(string id)
+        {
+            if (this.leftIcons != null)
+            {
+                foreach (Icon i in this.leftIcons)
+                {
+                    if (i.id == id)
+                        return i;
+                }
+            }
+
+            if (this.rightIcons != null)
+            {
+                foreach (Icon i in this.rightIcons)
+                {
+                    if (i.id == id)
+                        return i;
+                }
+            }
+
+            return null;
+        }
+
+        public bool SetIcon(string id, bool left, Sprite sprite, System.Action<Tree, Node, RectTransform> action = null)
+        { 
+            if(
+                (left == true && _SetIconFromList(this.leftIcons, id, sprite, action) == true) ||
+                (left == false && _SetIconFromList(this.rightIcons, id, sprite, action) == true))
+            {
+                this.FlagDirty(DirtyItems.ChangedIcons);
+                return false;
+            }
+
+            bool ret = true;
+            Icon newIcon = new Icon();
+            Icon ? icon = GetIconInfo(id);
+            if(icon.HasValue == true)
+            { 
+                ret = false;
+
+                // Might be in the wrong side, if that's the case, 
+                // we remove if from that side so we can add it to the other.
+                this.RemoveIcon(id);
+                newIcon = icon.Value;
+
+                if(sprite != null)
+                    newIcon.sprite = sprite;
+
+                if(action != null)
+                    newIcon.onClick = action;
+            }
+            else
+            { 
+                newIcon.id = id;
+                newIcon.sprite = sprite;
+                newIcon.scale = Vector2.one;
+                newIcon.onClick = action;
+            }
+
+            if(left == true)
+            { 
+                if(this.leftIcons == null)
+                    this.leftIcons = new List<Icon>();
+
+                this.leftIcons.Add(newIcon);
+            }
+            else
+            { 
+                if(this.rightIcons == null)
+                    this.rightIcons = new List<Icon>();
+
+                this.rightIcons.Add(newIcon);
+            }
+
+            this.FlagDirty(DirtyItems.ChangedIcons);
+            return ret;
+        }
+
+        protected static bool _SetIconFromList(List<Icon> iconList, string id, Sprite sprite, System.Action<Tree, Node, RectTransform> action = null)
+        {
+            if(iconList == null)
+                return false;
+
+            for (int i = 0; i < iconList.Count; ++i)
+            {
+                if (iconList[i].id == id)
+                {
+                    Icon ico = iconList[i];
+                    if (sprite != null)
+                        ico.sprite = sprite;
+
+                    if (action != null)
+                        ico.onClick = action;
+
+                    iconList[i] = ico;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public bool RemoveIcon(string id)
+        {
+            if(
+                _RemoveIconFromList(this.leftIcons, id) == true || 
+                _RemoveIconFromList(this.rightIcons, id) == true)
+            { 
+                this.FlagDirty(DirtyItems.ChangedIcons);
+                return true;
+            }
+
+            return false;
+        }
+
+        protected static bool _RemoveIconFromList(List<Icon> iconList, string id)
+        {
+            if(iconList == null)
+                return false;
+
+            for (int i = 0; i < iconList.Count; ++i)
+            {
+                if (iconList[i].id == id)
+                {
+                    iconList.RemoveAt(i);
+                    return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>
