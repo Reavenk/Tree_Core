@@ -159,6 +159,7 @@ namespace PxPre.Tree
         /// The Node's parent in the tree hierarchy.
         /// </summary>
         Node parent;
+        public Node Parent {get=>this.parent; }
 
         /// <summary>
         /// The node's children in the tree hierarchy.
