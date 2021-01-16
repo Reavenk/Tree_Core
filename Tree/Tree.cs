@@ -326,9 +326,14 @@ namespace PxPre.Tree
             RectTransform thisRT = this.rectTransform;
             if (this.props.widthMode == TreeProps.WidthMode.TouchEdge)
             {
-                thisRT.offsetMin = Vector2.zero;
-                thisRT.offsetMax = Vector2.zero;
+                // Probably not needed. Causes issues when tree is in
+                // a scroll rect (resets scroll to top). Remove commented
+                // code later if no issues found.
+                // (wleu 01/16/2021)
                 //
+                //thisRT.offsetMin = Vector2.zero;
+                //thisRT.offsetMax = Vector2.zero;
+                
                 thisRT.sizeDelta = new Vector2(0.0f, -y);
                 thisRT.anchorMin = new Vector2(0.0f, 1.0f);
                 thisRT.anchorMax = new Vector2(1.0f, 1.0f);
