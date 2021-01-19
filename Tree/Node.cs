@@ -298,6 +298,20 @@ namespace PxPre.Tree
             }
         }
 
+        public bool IsVisible()
+        { 
+            if(this.IsInTree() == false)
+                return false;
+
+            for(Node n = this.parent; n != null; n = n.parent)
+            {
+                if( n.Expanded == false)
+                    return false;
+            }
+
+            return true;
+        }
+
         /// <summary>
         /// Public property for the selection state.
         /// </summary>
